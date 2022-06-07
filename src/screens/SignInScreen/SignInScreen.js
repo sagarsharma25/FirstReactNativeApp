@@ -13,7 +13,9 @@ import CustomButton from '../../components/CustomButton'
 import SocialSignInButtons from '../../components/SocialSignInButtons';
 import {useForm} from 'react-hook-form'
 import {useNavigation} from '@react-navigation/native';
+import {Voximplant} from 'react-native-voximplant';
 import {Auth} from 'aws-amplify';
+import {APP_NAME, ACC_NAME} from '../../Constants';
 
 
 const SignInScreen = () => {
@@ -21,6 +23,21 @@ const SignInScreen = () => {
     const {height} = useWindowDimensions();
     const navigation = useNavigation();
     const [loading, setLoading] = useState(false);
+
+    const voximplant = Voximplant.getInstance();
+
+    useEffect(() => {
+        const connect = async () => {
+          const status = await voximplant.getClientState();
+          if (status === Voximplant.ClientState.DISCONNECTED) {
+            await voximplant.connect();
+          } else if (status === Voximplant.ClientState.LOGGED_IN) {
+            redirectHome();
+          }
+        };
+    
+        connect();
+      }, []);
 
     const {
         control,
@@ -36,6 +53,8 @@ const SignInScreen = () => {
         setLoading(true);
         try {
             const response = await Auth.signIn(data.username, data.password);
+            const fqUsername = `${username}@${APP_NAME}.${ACC_NAME}.voximplant.com`;
+            await voximplant.login(fqUsername, password);
             navigation.navigate('Home')
             console.log(response);
           } catch (e) {
